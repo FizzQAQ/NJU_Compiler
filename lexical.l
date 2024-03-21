@@ -53,12 +53,12 @@ WHILE while
     }
 }
 {ANNOATE2} {
-    char c = input();
-    while(c != '*'){
-        c = input();
-        if (c == '*'){
-            char c2 = input();
-            if (c2 == '/') break;
+    char c1 = input(), c2 = input();
+    while(c1 != '*' || c2 != '/'){
+        c1 = c2; c2 = input();
+        if(c2 == '\0'){ 
+            printf("Error type A at Line %d: Missing */.\n",yylineno);
+            break;
         }
     }
 }
@@ -219,6 +219,7 @@ WHILE while
     tmp -> is_token = 1;
     tmp -> TYPE_INT = atoi(yytext);
     yylval = tmp;
+    printf("%s\n", yytext);
     return INT;
 }
 {FLOAT} {
@@ -233,6 +234,7 @@ WHILE while
     tmp -> is_token = 1;
     strcpy(tmp -> TYPE_ID, yytext);
     yylval = tmp;
+    printf("%s\n", yytext);
     return ID;
 }
 " " {}
