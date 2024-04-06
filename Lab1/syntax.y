@@ -11,7 +11,18 @@ int SyntaxError = 0;
 /* declared tokens */
 %token INT FLOAT ID
 %token SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV AND OR DOT NOT TYPE LP RP LB RB LC RC STRUCT RETURN IF ELSE WHILE 
-
+%right ASSIGNOP
+%left OR
+%left AND 
+%left RELOP
+%left PLUS MINUS
+%left STAR DIV
+%right NOT  
+%left DOT 
+%left LB RB 
+%left LP RP
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 %%
 /*High-level Definitions*/
 Program : ExtDefList { $$ = creatNode($1, "Program\0", @$.first_line); root = $$; };
@@ -19,7 +30,7 @@ Program : ExtDefList { $$ = creatNode($1, "Program\0", @$.first_line); root = $$
 ExtDefList : ExtDef ExtDefList { $$ = creatNode($1, "ExtDefList\0", @$.first_line); $1 -> brother = $2; }
 | { $$ = creatNode(NULL, "ExtDefList\0", @$.first_line); $$ -> epsilon = 1; };
 
-ExtDef : Specifier ExtDecList SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
+ExtDef : Specifier ExtDecList SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; /*printf("111222  %d\n", @$.first_line);*/}
 | Specifier SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; }
 | Specifier FunDec CompSt { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
 | error SEMI { SyntaxError += 1; }
@@ -28,7 +39,6 @@ ExtDef : Specifier ExtDecList SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_lin
 
 ExtDecList : VarDec { $$ = creatNode($1, "ExtDecList\0", @$.first_line); }
 | VarDec COMMA ExtDecList { $$ = creatNode($1, "ExtDecList\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
-| VarDec error ExtDecList { SyntaxError += 1; };
 
 /*Specifiers*/
 Specifier : TYPE { $$ = creatNode($1, "Specifier\0", @$.first_line); }
@@ -45,7 +55,8 @@ Tag : ID { $$ = creatNode($1, "Tag\0", @$.first_line); };
 /*Declarators*/
 VarDec : ID { $$ = creatNode($1, "VarDec\0", @$.first_line); }
 | VarDec LB INT RB { $$ = creatNode($1, "VarDec\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; }
-| VarDec LB error RB { SyntaxError += 1; printf("1"); };
+| VarDec LB error RB { SyntaxError += 1; };
+| VarDec LB INT RB error { SyntaxError += 1; }
 
 FunDec : ID LP VarList RP { $$ = creatNode($1, "FunDec\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; }
 | ID LP RP { $$ = creatNode($1, "FunDec\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
@@ -58,7 +69,7 @@ VarList : ParamDec COMMA VarList { $$ = creatNode($1, "VarList\0", @$.first_line
 ParamDec : Specifier VarDec { $$ = creatNode($1, "ParamDec\0", @$.first_line); $1 -> brother = $2; };
 
 /*Statements*/
-CompSt : LC DefList StmtList RC { $$ = creatNode($1, "CompSt\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; };
+CompSt : LC DefList StmtList RC { $$ = creatNode($1, "CompSt\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; /*printf("1111 %d\n", @$.first_line);*/ };
 
 StmtList : Stmt StmtList { $$ = creatNode($1, "StmtList\0", @$.first_line); $1 -> brother = $2; }
 | { $$ = creatNode(NULL, "StmtList\0", @$.first_line); $$ -> epsilon = 1; };
@@ -69,16 +80,23 @@ Stmt : Exp SEMI { $$ = creatNode($1, "Stmt\0", @$.first_line); $1 -> brother = $
 | IF LP Exp RP Stmt { $$ = creatNode($1, "Stmt\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; $4 -> brother = $5; }
 | IF LP Exp RP Stmt ELSE Stmt { $$ = creatNode($1, "Stmt\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; $4 -> brother = $5; $5 -> brother = $6; $6 -> brother = $7; }
 | WHILE LP Exp RP Stmt { $$ = creatNode($1, "Stmt\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; $3 -> brother = $4; $4 -> brother = $5; }
-| error SEMI { SyntaxError += 1; }
+| IF error Exp RP Stmt { SyntaxError += 1; }
+| IF LP error RP Stmt { SyntaxError += 1; }
+| IF LP Exp error Stmt { SyntaxError += 1; }
+| WHILE error Exp RP Stmt { SyntaxError += 1; }
+| WHILE LP error RP Stmt { SyntaxError += 1; }
+| WHILE LP Exp error Stmt { SyntaxError += 1; }
+| error SEMI { SyntaxError += 1; yyerrok; }
 | Exp error SEMI { SyntaxError += 1; }
+| Exp error { SyntaxError += 1; }
 | RETURN error SEMI { SyntaxError += 1; }
 | RETURN Exp error { SyntaxError += 1; };
 
 /*Local Definitions*/
 DefList : Def DefList { $$ = creatNode($1, "DefList\0", @$.first_line); $1 -> brother = $2; }
-| { $$ = creatNode(NULL, "DefList\0", @$.first_line); $$ -> epsilon = 1; };
+| { $$ = creatNode(NULL, "DefList\0", @$.first_line); $$ -> epsilon = 1; /*printf("11122211   %d\n", @$.first_line);*/ };
 
-Def : Specifier DecList SEMI { $$ = creatNode($1, "Def\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
+Def : Specifier DecList SEMI { $$ = creatNode($1, "Def\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; /*printf("111222  %d\n", @$.first_line);*/ }
 | Specifier error SEMI { SyntaxError += 1; }
 | Specifier DecList error { SyntaxError += 1; };
 
@@ -119,7 +137,7 @@ Exp : LP Exp RP { $$ = creatNode($1, "Exp\0", @$.first_line); $1 -> brother = $2
 | Exp RELOP error { SyntaxError += 1; }
 | Exp AND error { SyntaxError += 1; }
 | Exp OR error { SyntaxError += 1; }
-| Exp ASSIGNOP { SyntaxError += 1; }
+| Exp ASSIGNOP error { SyntaxError += 1; }
 ;
 
 Args : Exp COMMA Args { $$ = creatNode($1, "Args\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
@@ -145,10 +163,9 @@ int main(int argc, char** argv) {
         printTreeFromRoot(root);
     return 0;
 
-
 }
 
 int yyerror(char* msg) {
-    printf("Error type B at Line %d: %s\n", yylineno, msg);
+    printf("Error type B at Line %d: %s\n", yylineno, yytext);
     //return 0;
 }

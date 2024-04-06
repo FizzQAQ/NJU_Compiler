@@ -219,7 +219,6 @@ WHILE while
     tmp -> is_token = 1;
     tmp -> TYPE_INT = atoi(yytext);
     yylval = tmp;
-    printf("%s\n", yytext);
     return INT;
 }
 {FLOAT} {
@@ -234,7 +233,6 @@ WHILE while
     tmp -> is_token = 1;
     strcpy(tmp -> TYPE_ID, yytext);
     yylval = tmp;
-    printf("%s\n", yytext);
     return ID;
 }
 " " {}
