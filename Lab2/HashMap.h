@@ -13,7 +13,7 @@ typedef struct HashNode_* HashNode;
 HashNode HashMap[HASHMAP_SIZE];
 struct Type_
 {
-	enum{BASIC,ARRAY,STRUCTURE,STRUCTTAG,FUNCTION} kind;
+	enum{BASIC,ARRAY,STRUCTURE,STRUCTTAG,FUNCTION,ERROR} kind;
 	union
 	{
 	int basic;
@@ -55,4 +55,5 @@ void PrintMap();
 void PrintSemErr(unsigned type,unsigned linenum,char *elem);
 bool TypeMatch(Type a,Type b);
 bool ArgMatch(FieldList func,FieldList arg);
+bool HaveMember(Type type,char *ID);
 #endif

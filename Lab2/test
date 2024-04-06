@@ -1,5 +1,5 @@
 int main(){
-	int i;
-	float j;
-	struct complex{int a;float b;}c;
+float j=0;
+return j;
 }
+

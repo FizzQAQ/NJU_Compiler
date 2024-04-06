@@ -26,6 +26,7 @@ unsigned hash_pjw(char* name){
 }
 
 HashNode insert_hash(FieldList field){
+	if(field->type->kind==ERROR){return NULL;}
 	unsigned i=hash_pjw(field->name);
 	//printf("%s,%d\n",field->name,i);
 	HashNode Node=(HashNode)malloc(sizeof(struct HashNode_));
@@ -60,6 +61,7 @@ FieldList lookup_hash(char* name){
 }
 
 void AddStructMember(FieldList field,FieldList member){
+	if(member->type->kind==ERROR){return;}
 	if(field->type->kind==STRUCTTAG){
 	FieldList tmp=field;
 	if(tmp->type->u.structmember==NULL)
@@ -78,6 +80,7 @@ void AddStructMember(FieldList field,FieldList member){
 	
 };
 void AddFuncArgv(FieldList field,FieldList Argv){
+	if(Argv->type->kind==ERROR){return;}
 	if(field->type->kind==FUNCTION){
 	FieldList tmp=field;
 	if(tmp->type->u.func.argv==NULL)
@@ -125,8 +128,8 @@ void printhashNode(FieldList Node){
 		}
 	else if(Node->type->kind==STRUCTTAG){
 			FieldList tmp=Node->type->u.structmember;
-			if(tmp!=NULL){
 			printf("StructTag %s:\n",Node->name);
+			if(tmp!=NULL){
 			printSpace(1);
 			printhashNode(tmp);
 			while(tmp->tail!=NULL)
@@ -181,24 +184,24 @@ void PrintSemErr(unsigned type,unsigned linenum,char* elem){
 	elem[0]=' ';
 	}
 	switch(type){
-	case 1:printf("Error type %d at Line %d:Undefined variable '%s'.",type,linenum,elem);break;
-	case 2:printf("Error type %d at Line %d:Undefined function '%s'.",type,linenum,elem);break;
-	case 3:printf("Error type %d at Line %d:Redefined variable '%s'.",type,linenum,elem);break;
-	case 4:printf("Error type %d at Line %d:Redefined function '%s'.",type,linenum,elem);break;
-	case 5:printf("Error type %d at Line %d:Type mismatched for assignment.",type,linenum);break;
-	case 6:printf("Error type %d at Line %d:The left-hand side of an assignment must be a  variable.",type,linenum);break;
-	case 7:printf("Error type %d at Line %d:Type mismatched for operands.",type,linenum);break;
-	case 8:printf("Error type %d at Line %d:Type mismatched for return.",type,linenum);break;
-	case 9:printf("Error type %d at Line %d:Function '%s' is not applicable for arguments.",type,linenum,elem);break;
-	case 10:printf("Error type %d at Line %d:'%s' is not an array.",type,linenum,elem);break;
-	case 11:printf("Error type %d at Line %d:'%s' is not a function.",type,linenum,elem);break;
-	case 12:printf("Error type %d at Line %d:'%s' is not an integer.",type,linenum,elem);break;
-	case 13:printf("Error type %d at Line %d:Illegal use of '%s'.",type,linenum,elem);break;
-	case 14:printf("Error type %d at Line %d:Non-existent field '%s'.",type,linenum,elem);break;
-	case 15:printf("Error type %d at Line %d:Redefined field '%s'.",type,linenum,elem);break;
-	case 16:printf("Error type %d at Line %d:Duplicated name '%s'.",type,linenum,elem);break;
-	case 17:printf("Error type %d at Line %d:Undefined structure '%s'.",type,linenum,elem);break;
-	default:printf("Undefined Error!");
+	case 1:printf("Error type %d at Line %d:Undefined variable '%s'.\n",type,linenum,elem);break;
+	case 2:printf("Error type %d at Line %d:Undefined function '%s'.\n",type,linenum,elem);break;
+	case 3:printf("Error type %d at Line %d:Redefined variable '%s'.\n",type,linenum,elem);break;
+	case 4:printf("Error type %d at Line %d:Redefined function '%s'.\n",type,linenum,elem);break;
+	case 5:printf("Error type %d at Line %d:Type mismatched for assignment.\n",type,linenum);break;
+	case 6:printf("Error type %d at Line %d:The left-hand side of an assignment must be a  variable.\n",type,linenum);break;
+	case 7:printf("Error type %d at Line %d:Type mismatched for operands.\n",type,linenum);break;
+	case 8:printf("Error type %d at Line %d:Type mismatched for return.\n",type,linenum);break;
+	case 9:printf("Error type %d at Line %d:Function '%s' is not applicable for arguments.\n",type,linenum,elem);break;
+	case 10:printf("Error type %d at Line %d:'%s' is not an array.\n",type,linenum,elem);break;
+	case 11:printf("Error type %d at Line %d:'%s' is not a function.\n",type,linenum,elem);break;
+	case 12:printf("Error type %d at Line %d:'%s' is not an integer.\n",type,linenum,elem);break;
+	case 13:printf("Error type %d at Line %d:Illegal use of '%s'.\n",type,linenum,elem);break;
+	case 14:printf("Error type %d at Line %d:Non-existent field '%s'.\n",type,linenum,elem);break;
+	case 15:printf("Error type %d at Line %d:Redefined field or Initialized struct field.\n",type,linenum);break;
+	case 16:printf("Error type %d at Line %d:Duplicated name '%s'.\n",type,linenum,elem);break;
+	case 17:printf("Error type %d at Line %d:Undefined structure '%s'.\n",type,linenum,elem);break;
+	default:printf("Undefined Error!\n");
 	}
 }
 bool TypeMatch(Type a,Type b){
@@ -231,4 +234,13 @@ bool ArgMatch(FieldList func,FieldList arg){
 		return true;
 	else return false;
 };
-
+bool HaveMember(Type type,char *ID){
+	FieldList member=type->u.structmember;
+	while(member!=NULL)
+	{
+		if(!strcmp(member->name,ID))
+			return true;
+		member=member->tail;
+	}
+	return false;
+};

@@ -80,18 +80,32 @@ void StructSpecifier(struct Node*node,Type type){
 	{
 		struct Node* brother1=child->brother;
 		struct Node* brother2=brother1->brother->brother;
+		char* opt=OptTag(brother);
+		if(lookup_hash(opt)!=NULL){
+			PrintSemErr(16,node->lineNum,opt);
+			SemanticError++;
+			type->kind=ERROR;
+			return;
+		}
 		FieldList field=(FieldList)malloc(sizeof(struct FieldList_));
 		field->tail=NULL;
 		field->type=(Type)malloc(sizeof(struct Type_));
 		field->type->kind=STRUCTTAG;
 		field->type->u.structmember=NULL;
-		field->name=OptTag(brother);
+		field->name=opt;
 		DefList(brother2,field);
 		insert_hash(field);
 		type->u.structure=field;
 	}
 	else{
+		char* tag=Tag(brother);
 		FieldList field=lookup_hash(Tag(brother));
+		if(field==NULL){
+			PrintSemErr(17,node->lineNum,tag);
+			SemanticError++;
+			type->kind=ERROR;
+			return;
+		}
 		type->u.structure=field;
 	}
 
@@ -131,12 +145,29 @@ FieldList VarDec(struct Node*node,Type type,FieldList field){
 		//printf("VarField:%s\n",VarField->name);
 		VarField->type=type;
 		VarField->tail=NULL;
+		FieldList look=lookup_hash(child->TYPE_ID);
 		if(field==NULL)
-			insert_hash(VarField);
-		else if(field!=NULL&&field->type->kind!=STRUCTTAG)
+			{
+				if(look!=NULL){
+				PrintSemErr(3,node->lineNum,child->TYPE_ID);
+				SemanticError++;
+				VarField->type->kind=ERROR;
+				}
+				insert_hash(VarField);//nomal insert
+			}
+		else if(field!=NULL&&field->type->kind!=STRUCTTAG)//func argv insert
 			{
 				insert_hash(VarField);
 			}
+		else if(field!=NULL&&field->type->kind==STRUCTTAG){// struct insert
+			if(look!=NULL)
+			{
+				PrintSemErr(15,node->lineNum,child->TYPE_ID);
+				SemanticError++;
+				VarField->type->kind=ERROR;
+			}
+			
+		}
 	}
 	else 
 	{
@@ -163,6 +194,14 @@ void FunDec(struct Node*node,Type type){
 	field->type->u.func.ret=type;
 	field->type->u.func.argc=0;
 	field->type->u.func.argv=NULL;
+	FieldList look=lookup_hash(child->TYPE_ID);
+	if(look!=NULL)
+	{
+		PrintSemErr(4,node->lineNum,child->TYPE_ID);
+		SemanticError++;
+		field->type->kind=ERROR;
+		return;
+	}
 	struct Node*brother=child->brother->brother;
 	strcpy(field->name,child->TYPE_ID);
 	if(!strcmp(brother->name,"VarList\0")){
@@ -218,19 +257,34 @@ void Stmt(struct Node*node,Type type){
 	{
 		struct Node* brother=child->brother;
 		Type returnType=Exp(brother);
+		if(returnType!=NULL){
+			if(!TypeMatch(type,returnType))
+			{
+				PrintSemErr(8,node->lineNum,NULL);
+				SemanticError++;
+			}
+		}
 	}
 	else if(!strcmp(child->name,"IF\0"))
 	{
 		struct Node* exp1=child->brother->brother;
 		struct Node* stmt1=(child->brother->brother->brother->brother);//IF LP Exp RP Stmt
 		if(stmt1->brother==NULL){
-				Exp(exp1);
+				Type exptype=Exp(exp1);
+				if(exptype!=NULL&&(exptype->kind!=BASIC||exptype->u.basic!=INT)){
+					PrintSemErr(7,node->lineNum,NULL);
+					SemanticError++;
+				}
 				Stmt(stmt1,type);
 
 		}
 		else {//IF LP Exp RP Stmt ELSE Stmt
 		struct Node* stmt2=stmt1->brother->brother;
-		Exp(exp1);
+		Type exptype=Exp(exp1);
+		if(exptype!=NULL&&(exptype->kind!=BASIC||exptype->u.basic!=INT)){
+			PrintSemErr(7,node->lineNum,NULL);
+			SemanticError++;
+		}
 		Stmt(stmt1,type);
 		Stmt(stmt2,type);
 		}
@@ -238,6 +292,11 @@ void Stmt(struct Node*node,Type type){
 	else if(!strcmp(child->name,"WHILE\0"))//WHILE LP Exp RP Stmt
 	{
 		struct Node* exp1=child->brother->brother;
+		Type exptype=Exp(exp1);
+		if(exptype!=NULL&&(exptype->kind!=BASIC||exptype->u.basic!=INT)){
+			PrintSemErr(7,node->lineNum,NULL);
+			SemanticError++;
+		}
 		struct Node* stmt1=exp1->brother->brother;
 		Stmt(stmt1,type);
 	}
@@ -289,11 +348,19 @@ void Dec(struct Node*node,Type type,FieldList field){
 	}
 	else{
 		if(field!=NULL&&field->type->kind==STRUCTTAG){
-		FieldList member=VarDec(child,type,field);
-		AddStructMember(field,member);
+			PrintSemErr(15,node->lineNum,NULL);
+			SemanticError++;
+	
 		}
 		else{
-		VarDec(child,type,field);
+			struct Node*brother1=brother->brother;
+			FieldList fi=VarDec(child,type,field);
+			Type exptype= Exp(brother1);
+			if(!TypeMatch(exptype,fi->type)){
+				PrintSemErr(5,node->lineNum,NULL);
+				SemanticError++;
+
+		}
 		}
 	}
 
@@ -310,39 +377,106 @@ Type Exp(struct Node*node){
 			struct Node*brother=child->brother;
 			FieldList result=lookup_hash(child->TYPE_ID);
 			if(brother==NULL)//ID
-			{
-				struct Node*brother=child->brother;
+			{	
+				if(result==NULL||result->type->kind==STRUCTTAG||result->type->kind==FUNCTION){
+					PrintSemErr(1,node->lineNum,child->TYPE_ID);
+					SemanticError++;
+					return NULL;
+				}
 				return result->type;
 			}
 			else if(!strcmp(brother->name,"LP\0")){
 				struct Node*brother1=brother->brother;
 				if(!strcmp(brother1->name,"Args\0")){//ID LP Args RP
-					Args(brother1);
-					return result->type;				
+					if(result==NULL)	
+					{
+					PrintSemErr(2,node->lineNum,child->TYPE_ID);
+					SemanticError++;
+					return NULL;
+					}
+					if(result->type->kind!=FUNCTION){
+						PrintSemErr(11,node->lineNum,child->TYPE_ID);
+						SemanticError++;
+						return NULL;
+					}			
+					FieldList argfield=Args(brother1);
+					if(!ArgMatch(result,argfield)){
+						PrintSemErr(9,node->lineNum,result->name);
+						SemanticError++;
+						return NULL;
+					}
+					return result->type->u.func.ret;				
 				}
 				else{//ID LP RP
-					return result->type;
+					if(result==NULL)	
+					{
+					PrintSemErr(2,node->lineNum,child->TYPE_ID);
+					SemanticError++;
+					return NULL;
+					}
+					if(result->type->kind!=FUNCTION){
+						PrintSemErr(11,node->lineNum,child->TYPE_ID);
+						SemanticError++;
+						return NULL;
+					}
+					return result->type->u.func.ret;
 				}			
 			}
 		}
 		else if(!strcmp(child->name,"Exp\0")){
 			Type type1=Exp(child);
+			if(type1==NULL)return NULL;
 			struct Node*brother=child->brother;
 			if(!strcmp(brother->name,"LB\0"))//Exp LB Exp RB
 			{
+				if(type1->kind!=ARRAY){
+					PrintSemErr(10,node->lineNum,NULL);
+					SemanticError++;
+					return NULL;
+				}
 				struct Node*brother=child->brother;
 				Type type2=Exp(brother->brother);
+				if(type2==NULL)return NULL;
+				else if(type2->kind!=BASIC||type2->u.basic!=INT)
+				{
+					PrintSemErr(12,node->lineNum,NULL);
+					SemanticError++;
+					return NULL;
+				}
 				return type1->u.array.elem;
 			}
 			else if(!strcmp(brother->name,"DOT\0"))//Exp DOT ID 
 			{
-				//TODO
+				if(type1->kind!=STRUCTURE){
+					PrintSemErr(13,node->lineNum,NULL);
+					SemanticError++;
+					return NULL;
+				}
+				else if(!HaveMember(type1,brother->brother->TYPE_ID)){
+				PrintSemErr(14,node->lineNum,brother->brother->TYPE_ID);
+				SemanticError++;
+				return NULL;
+				}
 			}
 			else if(!strcmp(brother->name,"ASSIGNOP\0"))//Exp ASSIGNOP Exp
 			{
-				struct Node*brother=child->brother;
 				Type type2=Exp(brother->brother);
-				//TODO
+				if(!TypeMatch(type1,type2)){
+					PrintSemErr(5,node->lineNum,NULL);
+					SemanticError++;
+					return NULL;
+				}
+				else if(!(
+						(!strcmp(child->child->name,"INT\0"))||
+						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->name,"DOT\0"))||
+						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->name,"LB\0"))
+					))
+					{
+						PrintSemErr(6,node->lineNum,NULL);
+						SemanticError++;
+						return NULL;
+					}
+				return type1;
 			}
 			else {
 			/*
@@ -356,16 +490,49 @@ Type Exp(struct Node*node){
 			*/
 			struct Node*brother=child->brother;
 			Type type2=Exp(brother->brother);
-			//TODO
+			if(type2==NULL){return NULL;}
+			if(!TypeMatch(type1,type2)){
+				PrintSemErr(7,node->lineNum,NULL);
+				SemanticError++;
+				return NULL;
+			}
+			if((!strcmp(brother->name,"AND\0"))||(!strcmp(brother->name,"OR\0"))){
+				if(type1->kind!=BASIC||type1->u.basic!=INT){
+				PrintSemErr(7,node->lineNum,NULL);
+				SemanticError++;
+				return NULL;
+				}
+				Type toret=(Type)malloc(sizeof(struct Type_));
+				toret->kind=BASIC;
+				toret->u.basic=INT;
+				return toret;
+			}
+			else if(!strcmp(brother->name,"RELOP\0")){
+				Type toret=(Type)malloc(sizeof(struct Type_));
+				toret->kind=BASIC;
+				toret->u.basic=INT;
+				return toret;
+			}
+			return type1;
 			}
 		}
 		else if(!strcmp(child->name,"MINUS\0")){//MINUS Exp
 			struct Node*brother=child->brother;
-			return Exp(brother);
+			Type exptype=Exp(brother);
+			if(exptype!=NULL&&(exptype->kind!=BASIC)){
+				PrintSemErr(7,node->lineNum,NULL);
+				SemanticError++;
+			}
+			return exptype;
 		}
 		else if(!strcmp(child->name,"NOT\0")){//NOT Exp
 			struct Node*brother=child->brother;
-			return Exp(brother);
+			Type exptype=Exp(brother);
+			if(exptype!=NULL&&(exptype->kind!=BASIC||exptype->u.basic!=INT)){
+				PrintSemErr(7,node->lineNum,NULL);
+				SemanticError++;
+			}
+			return exptype;
 		}
 		else if(!strcmp(child->name,"INT\0"))//INT
 		{
