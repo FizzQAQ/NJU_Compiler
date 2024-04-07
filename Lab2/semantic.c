@@ -32,6 +32,7 @@ void ExtDef(struct Node*node){
 	}
 	else if(!strcmp(brother->name,"FunDec\0")){
 	FunDec(brother,type);
+	if(type!=NULL&&type->kind!=ERROR)
 	CompSt(brother->brother,type);
 	}
 	
@@ -146,8 +147,9 @@ FieldList VarDec(struct Node*node,Type type,FieldList field){
 		VarField->type=type;
 		VarField->tail=NULL;
 		FieldList look=lookup_hash(child->TYPE_ID);
-		if(field==NULL)
+		if(field==NULL||field->type->kind==FUNCTION)
 			{
+				//printf("VarField:%s\n",VarField->name);
 				if(look!=NULL){
 				PrintSemErr(3,node->lineNum,child->TYPE_ID);
 				SemanticError++;
@@ -160,7 +162,7 @@ FieldList VarDec(struct Node*node,Type type,FieldList field){
 				insert_hash(VarField);
 			}
 		else if(field!=NULL&&field->type->kind==STRUCTTAG){// struct insert
-			if(HaveMember(field->type,child->TYPE_ID))
+			if(HaveMember(field->type,child->TYPE_ID)!=NULL)
 			{
 				
 				PrintSemErr(15,node->lineNum,child->TYPE_ID);
@@ -201,6 +203,7 @@ void FunDec(struct Node*node,Type type){
 		PrintSemErr(4,node->lineNum,child->TYPE_ID);
 		SemanticError++;
 		field->type->kind=ERROR;
+		type->kind=ERROR;
 		return;
 	}
 	struct Node*brother=child->brother->brother;
@@ -255,7 +258,7 @@ void Stmt(struct Node*node,Type type){
 		Exp(child);
 	}
 	else if(!strcmp(child->name,"RETURN\0"))
-	{
+	{	
 		struct Node* brother=child->brother;
 		Type returnType=Exp(brother);
 		if(returnType!=NULL){
@@ -265,6 +268,12 @@ void Stmt(struct Node*node,Type type){
 				SemanticError++;
 			}
 		}
+		
+	}
+	else if(!strcmp(child->name,"CompSt\0"))
+	{	
+		CompSt(child,type);
+		
 	}
 	else if(!strcmp(child->name,"IF\0"))
 	{
@@ -351,18 +360,17 @@ void Dec(struct Node*node,Type type,FieldList field){
 		if(field!=NULL&&field->type->kind==STRUCTTAG){
 			PrintSemErr(15,node->lineNum,NULL);
 			SemanticError++;
-	
 		}
-		else{
+		
 			struct Node*brother1=brother->brother;
 			FieldList fi=VarDec(child,type,field);
 			Type exptype= Exp(brother1);
-			if(!TypeMatch(exptype,fi->type)){
+			if(exptype!=NULL&&fi->type->kind!=ERROR&&!TypeMatch(exptype,fi->type)){
 				PrintSemErr(5,node->lineNum,NULL);
 				SemanticError++;
 
 		}
-		}
+		
 	}
 
 
@@ -378,7 +386,7 @@ Type Exp(struct Node*node){
 			struct Node*brother=child->brother;
 			FieldList result=lookup_hash(child->TYPE_ID);
 			if(brother==NULL)//ID
-			{	
+			{	//printf("Exp->ID:%s\n",child->TYPE_ID);
 				if(result==NULL||result->type->kind==STRUCTTAG||result->type->kind==FUNCTION){
 					PrintSemErr(1,node->lineNum,child->TYPE_ID);
 					SemanticError++;
@@ -409,12 +417,14 @@ Type Exp(struct Node*node){
 					return result->type->u.func.ret;				
 				}
 				else{//ID LP RP
+	
 					if(result==NULL)	
 					{
 					PrintSemErr(2,node->lineNum,child->TYPE_ID);
 					SemanticError++;
 					return NULL;
 					}
+				
 					if(result->type->kind!=FUNCTION){
 						PrintSemErr(11,node->lineNum,child->TYPE_ID);
 						SemanticError++;
@@ -448,29 +458,34 @@ Type Exp(struct Node*node){
 			}
 			else if(!strcmp(brother->name,"DOT\0"))//Exp DOT ID 
 			{
+				
 				if(type1->kind!=STRUCTURE){
 					PrintSemErr(13,node->lineNum,NULL);
 					SemanticError++;
 					return NULL;
 				}
-				else if(!HaveMember(type1->u.structure->type,brother->brother->TYPE_ID)){
-				//printf("ID:%s\n",type1->u.structure->type->u.structmember->name);
+				FieldList member=HaveMember(type1->u.structure->type,brother->brother->TYPE_ID);
+				if(member==NULL){
 				PrintSemErr(14,node->lineNum,brother->brother->TYPE_ID);
 				SemanticError++;
 				return NULL;
 				}
+				return member->type;
 			}
 			else if(!strcmp(brother->name,"ASSIGNOP\0"))//Exp ASSIGNOP Exp
 			{
+				
+				//printf("brother->brother->name:%s",brother->brother->name);
 				Type type2=Exp(brother->brother);
-				if(!TypeMatch(type1,type2)){
+				if(type1!=NULL&&type2!=NULL&&!TypeMatch(type1,type2)){
+					//printf("type1:%d,type2:%d\n",type1->kind,type2->kind);
 					PrintSemErr(5,node->lineNum,NULL);
 					SemanticError++;
 					return NULL;
 				}
-				else if(!((!strcmp(child->child->name,"ID\0"))||
+				else if(!((!strcmp(child->child->name,"ID\0")&&(child->child->brother==NULL))||
 						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->brother->name,"DOT\0"))||
-						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->brother->name,"LB\0"))
+						(!strcmp(child->child->name,"Exp\0")&&(!strcmp(child->child->brother->name,"LB\0")))
 					))
 					{
 						PrintSemErr(6,node->lineNum,NULL);

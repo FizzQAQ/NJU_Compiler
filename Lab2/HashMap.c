@@ -27,7 +27,10 @@ unsigned hash_pjw(char* name){
 
 HashNode insert_hash(FieldList field){
 	if(field->type->kind==ERROR){return NULL;}
-	unsigned i=hash_pjw(field->name);
+	unsigned i;
+	if(field->name==NULL)
+		i=1;
+	else i=hash_pjw(field->name);
 	//printf("%s,%d\n",field->name,i);
 	HashNode Node=(HashNode)malloc(sizeof(struct HashNode_));
 	Node->field=field;
@@ -47,6 +50,7 @@ HashNode insert_hash(FieldList field){
 }
 
 FieldList lookup_hash(char* name){
+	if(name==NULL)return NULL;
 	unsigned i=hash_pjw(name);
 	HashNode tmp=HashMap[i];
 	while(tmp!=NULL)
@@ -234,13 +238,13 @@ bool ArgMatch(FieldList func,FieldList arg){
 		return true;
 	else return false;
 };
-bool HaveMember(Type type,char *ID){
+FieldList HaveMember(Type type,char *ID){
 	FieldList member=type->u.structmember;
 	while(member!=NULL)
 	{
 		if(!strcmp(member->name,ID))
-			return true;
+			return member;
 		member=member->tail;
 	}
-	return false;
+	return NULL;
 };

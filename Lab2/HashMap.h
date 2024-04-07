@@ -55,5 +55,5 @@ void PrintMap();
 void PrintSemErr(unsigned type,unsigned linenum,char *elem);
 bool TypeMatch(Type a,Type b);
 bool ArgMatch(FieldList func,FieldList arg);
-bool HaveMember(Type type,char *ID);
+FieldList HaveMember(Type type,char *ID);
 #endif

@@ -159,9 +159,8 @@ int main(int argc, char** argv) {
     }
     yyrestart(f);
     yyparse();
-	
     if(LexError == 0 && SyntaxError == 0)
-        {
+     {
 	semantic_anyasis(root);
 	//PrintMap();
 	if(SemanticError==0)
