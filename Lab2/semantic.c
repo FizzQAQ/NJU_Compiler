@@ -160,8 +160,9 @@ FieldList VarDec(struct Node*node,Type type,FieldList field){
 				insert_hash(VarField);
 			}
 		else if(field!=NULL&&field->type->kind==STRUCTTAG){// struct insert
-			if(look!=NULL)
+			if(HaveMember(field->type,child->TYPE_ID))
 			{
+				
 				PrintSemErr(15,node->lineNum,child->TYPE_ID);
 				SemanticError++;
 				VarField->type->kind=ERROR;
@@ -452,7 +453,8 @@ Type Exp(struct Node*node){
 					SemanticError++;
 					return NULL;
 				}
-				else if(!HaveMember(type1,brother->brother->TYPE_ID)){
+				else if(!HaveMember(type1->u.structure->type,brother->brother->TYPE_ID)){
+				printf("ID:%s\n",type1->u.structure->type->u.structmember->name);
 				PrintSemErr(14,node->lineNum,brother->brother->TYPE_ID);
 				SemanticError++;
 				return NULL;
@@ -466,10 +468,9 @@ Type Exp(struct Node*node){
 					SemanticError++;
 					return NULL;
 				}
-				else if(!(
-						(!strcmp(child->child->name,"INT\0"))||
-						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->name,"DOT\0"))||
-						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->name,"LB\0"))
+				else if(!((!strcmp(child->child->name,"ID\0"))||
+						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->brother->name,"DOT\0"))||
+						(!strcmp(child->child->name,"Exp\0")&&!strcmp(child->child->brother->name,"LB\0"))
 					))
 					{
 						PrintSemErr(6,node->lineNum,NULL);
