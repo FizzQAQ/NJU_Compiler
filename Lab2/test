@@ -1,56 +1,33 @@
-struct Rectangle {
-  int tlx, tly;
-  int w, h;
+struct IntVector {
+  int ix, iy;
 };
 
-struct Circle {
-  int cx, cy;
-  int cr;
+struct FloatVector {
+  int fx, fy;
 };
 
-struct Rectangle makeRect(int etlx, int etly, int ew, int eh) {
-  struct Rectangle erect;
-  erect.tlx = etlx;
-  erect.tly = etly;
-  erect.w = ew;
-  erect.h = eh;
-  return erect;
-}
-
-struct Circle makeCirc(int fcx, int fcy, int fcr) {
-  struct Circle fcirc;
-  fcirc.cx = fcx;
-  fcirc.cy = fcy;
-  fcirc.cr = fcr;
-  return fcirc;
-}
-
-int calRArea(struct Rectangle arect) {
-  return arect.w * arect.h;
-}
-
-int calCArea(struct Circle bcirc) {
-  return 3 * bcirc.cr * bcirc.cr;
-}
-
-int isRCover(struct Rectangle drect, int dx, int dy) {
-  int dtop = drect.tly;
-  int dleft = drect.tlx;
-  int dbottom = dtop + drect.h;
-  int dright = dleft + drect.w;
-
-  if (dleft <= dx && dx <= dright) {
-    if (dtop <= dy && dy <= dbottom) {
-      return 1;
-    }
+int vec_is_equal(struct IntVector iv, struct IntVector iw) {
+  if (iv.ix == iw.ix && iv.iy == iw.iy) {
+    return 1;
+  } else {
+    return 0;
   }
+}
 
-  return 0;
+int vec_is_equal(struct FloatVector fv, struct FloatVector fw) {
+  if (fv.fx == fw.fx && fv.fy == fw.fy) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 int main() {
-  struct Rectangle mr = makeRect(1, 4, 32, 53);
-  struct Circle mc = makeCirc(12, 21, 4);
-  int mx = 12, my = mc.cx * mc.cy / mc.cr;
-  return isRCover(mr, mx, my);
+  struct IntVector v1;
+  struct FloatVector v2;
+
+  vec_is_equal(v1, v1);
+  vec_is_equal(v2, v2);
+
+  return 0;
 }

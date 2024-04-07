@@ -360,18 +360,21 @@ void Dec(struct Node*node,Type type,FieldList field){
 		if(field!=NULL&&field->type->kind==STRUCTTAG){
 			PrintSemErr(15,node->lineNum,NULL);
 			SemanticError++;
+			FieldList member=VarDec(child,type,field);
+			AddStructMember(field,member);
 		}
-		
+		else {
 			struct Node*brother1=brother->brother;
 			FieldList fi=VarDec(child,type,field);
 			Type exptype= Exp(brother1);
 			if(exptype!=NULL&&fi->type->kind!=ERROR&&!TypeMatch(exptype,fi->type)){
 				PrintSemErr(5,node->lineNum,NULL);
 				SemanticError++;
-
+				}
+			}
 		}
 		
-	}
+	
 
 
 };
