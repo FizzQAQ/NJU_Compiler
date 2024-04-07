@@ -454,7 +454,7 @@ Type Exp(struct Node*node){
 					return NULL;
 				}
 				else if(!HaveMember(type1->u.structure->type,brother->brother->TYPE_ID)){
-				printf("ID:%s\n",type1->u.structure->type->u.structmember->name);
+				//printf("ID:%s\n",type1->u.structure->type->u.structmember->name);
 				PrintSemErr(14,node->lineNum,brother->brother->TYPE_ID);
 				SemanticError++;
 				return NULL;
