@@ -223,7 +223,21 @@ bool TypeMatch(Type a,Type b){
 	{
 		return TypeMatch(a->u.structure->type,b->u.structure->type);
 	}
-
+	else if(a->kind==STRUCTTAG)
+	{
+		FieldList amember=a->u.structmember;
+		FieldList bmember=b->u.structmember;
+		while(amember!=NULL&&bmember!=NULL)
+		{
+			bool i=TypeMatch(amember->type,bmember->type);
+			if(!i)return false;
+			amember=amember->tail;
+			bmember=bmember->tail;
+		}
+		if(amember!=NULL||bmember!=NULL){return false;}
+		return true;
+	}
+	return false;
 };
 bool ArgMatch(FieldList func,FieldList arg){
 	FieldList argv1=func->type->u.func.argv;
