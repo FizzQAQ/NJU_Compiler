@@ -33,6 +33,7 @@ ExtDefList : ExtDef ExtDefList { $$ = creatNode($1, "ExtDefList\0", @$.first_lin
 ExtDef : Specifier ExtDecList SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; /*printf("111222  %d\n", @$.first_line);*/}
 | Specifier SEMI { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; }
 | Specifier FunDec CompSt { $$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3; }
+| Specifier FunDec SEMI {$$ = creatNode($1, "ExtDef\0", @$.first_line); $1 -> brother = $2; $2 -> brother = $3;}
 | error SEMI { SyntaxError += 1; }
 | Specifier error SEMI { SyntaxError += 1; }
 | error Specifier SEMI { SyntaxError += 1; };
@@ -164,7 +165,10 @@ int main(int argc, char** argv) {
 	semantic_anyasis(root);
 	//PrintMap();
 	if(SemanticError==0)
-		printTreeFromRoot(root);	
+		{
+		//printTreeFromRoot(root);	
+		}
+		
 	}
     return 0;
 

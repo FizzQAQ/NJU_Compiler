@@ -23,7 +23,7 @@ char* Tag(struct Node*node);
 
 FieldList VarDec(struct Node*node,Type type,FieldList field);
 
-void FunDec(struct Node*node,Type type);
+void FunDec(struct Node*node,Type type,unsigned is_extern);
 
 void VarList(struct Node*node,FieldList field);
 

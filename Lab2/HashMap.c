@@ -4,6 +4,7 @@
 #include<stdbool.h>
 #include "HashMap.h"
 #include "Node.h"
+extern unsigned SemanticError;
 void init_hash()
 {
 	for(int i=0;i<HASHMAP_SIZE;i++)
@@ -154,7 +155,7 @@ void printhashNode(FieldList Node){
 			}
 		}
 	else if(Node->type->kind==FUNCTION){
-			printf("function: %s,argc:%d,argv:\n",Node->name,Node->type->u.func.argc);
+			printf("function: %s,argc:%d,is_extern:%d,argv:\n",Node->name,Node->type->u.func.argc,Node->type->u.func.is_extern);
 			FieldList tmp=Node->type->u.func.argv;
 			if(tmp!=NULL){
 			printf("Function %s:\n",Node->name);
@@ -205,6 +206,8 @@ void PrintSemErr(unsigned type,unsigned linenum,char* elem){
 	case 15:printf("Error type %d at Line %d:Redefined field or Initialized struct field.\n",type,linenum);break;
 	case 16:printf("Error type %d at Line %d:Duplicated name '%s'.\n",type,linenum,elem);break;
 	case 17:printf("Error type %d at Line %d:Undefined structure '%s'.\n",type,linenum,elem);break;
+	case 18:printf("Error type %d at Line %d:Undefined function '%s'\n",type,linenum,elem);break;
+	case 19:printf("Error type %d at Line %d:Inconsistent declaration of function '%s'.\n",type,linenum,elem);break;
 	default:printf("Undefined Error!\n");
 	}
 }
@@ -223,25 +226,25 @@ bool TypeMatch(Type a,Type b){
 	{
 		return TypeMatch(a->u.structure->type,b->u.structure->type);
 	}
-	else if(a->kind==STRUCTTAG)
-	{
-		FieldList amember=a->u.structmember;
-		FieldList bmember=b->u.structmember;
-		while(amember!=NULL&&bmember!=NULL)
-		{
-			bool i=TypeMatch(amember->type,bmember->type);
-			if(!i)return false;
-			amember=amember->tail;
-			bmember=bmember->tail;
-		}
-		if(amember!=NULL||bmember!=NULL){return false;}
-		return true;
-	}
 	return false;
 };
 bool ArgMatch(FieldList func,FieldList arg){
 	FieldList argv1=func->type->u.func.argv;
 	FieldList argv2=arg;	
+	while(argv1!=NULL&&argv2!=NULL){
+		if(!TypeMatch(argv1->type,argv2->type))
+			return false;
+		argv1=argv1->tail;
+		argv2=argv2->tail;
+	}
+	if(argv1==NULL&&argv2==NULL)
+		return true;
+	else return false;
+};
+bool FuncArgMatch(FieldList func1,FieldList func2){
+	if(!TypeMatch(func1->type->u.func.ret,func2->type->u.func.ret)){return false;}
+	FieldList argv1=func1->type->u.func.argv;
+	FieldList argv2=func2->type->u.func.argv;
 	while(argv1!=NULL&&argv2!=NULL){
 		if(!TypeMatch(argv1->type,argv2->type))
 			return false;
@@ -262,3 +265,25 @@ FieldList HaveMember(Type type,char *ID){
 	}
 	return NULL;
 };
+void CheckUndefFunc(){
+	for(int i=0;i<HASHMAP_SIZE;i++){
+		if(HashMap[i]!=NULL)
+			{
+				
+				HashNode tmp=HashMap[i];
+				while(tmp!=NULL){
+						if(tmp->field!=NULL&&tmp->field->type!=NULL&&tmp->field->type->kind==FUNCTION)
+						{
+							if(tmp->field->type->u.func.is_extern!=0)
+							{
+							PrintSemErr(18,tmp->field->type->u.func.is_extern,tmp->field->name);
+							SemanticError++;
+							}
+						}
+						tmp=tmp->next;
+				}
+			}
+	}
+
+
+}

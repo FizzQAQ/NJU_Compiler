@@ -20,7 +20,7 @@ struct Type_
 	struct {Type elem;int size;}array;
 	FieldList structure;
 	FieldList structmember;
-	struct {Type ret;int argc;FieldList argv;}func;
+	struct {Type ret;int argc;FieldList argv;unsigned is_extern;}func;
 	}u;
 	
 };
@@ -55,5 +55,7 @@ void PrintMap();
 void PrintSemErr(unsigned type,unsigned linenum,char *elem);
 bool TypeMatch(Type a,Type b);
 bool ArgMatch(FieldList func,FieldList arg);
+bool FuncArgMatch(FieldList func1,FieldList func2);
 FieldList HaveMember(Type type,char *ID);
+void CheckUndefFunc();
 #endif

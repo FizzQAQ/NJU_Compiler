@@ -9,6 +9,7 @@ void semantic_anyasis(struct Node* node)
 	init_hash();
 	//printf("1");
 	Program(node);
+	CheckUndefFunc();
 }
 void Program(struct Node*node){
 	struct Node* child=node->child;
@@ -31,9 +32,17 @@ void ExtDef(struct Node*node){
 	ExtDecList(brother,type);
 	}
 	else if(!strcmp(brother->name,"FunDec\0")){
-	FunDec(brother,type);
-	if(type!=NULL&&type->kind!=ERROR)
-	CompSt(brother->brother,type);
+		struct Node* brother1=brother->brother;
+		if(!strcmp(brother1->name,"CompSt\0"))
+		{
+			FunDec(brother,type,0);
+			if(type!=NULL&&type->kind!=ERROR)
+			CompSt(brother->brother,type);
+		}
+		else{
+			FunDec(brother,type,node->lineNum);
+		}
+
 	}
 	
 	
@@ -137,25 +146,41 @@ char* Tag(struct Node*node)
 FieldList VarDec(struct Node*node,Type type,FieldList field){
 	struct Node*child=node->child;
 	FieldList VarField=NULL;
-	
 	if(!strcmp(child->name,"ID\0"))
 	{
 		VarField=(FieldList)malloc(sizeof(struct FieldList_));
 		VarField->name=(char*)malloc(sizeof(char)*32);
 		strcpy(VarField->name,child->TYPE_ID);
-		//printf("VarField:%s\n",VarField->name);
 		VarField->type=type;
 		VarField->tail=NULL;
 		FieldList look=lookup_hash(child->TYPE_ID);
 		if(field==NULL||field->type->kind==FUNCTION)
 			{
-				//printf("VarField:%s\n",VarField->name);
-				if(look!=NULL){
-				PrintSemErr(3,node->lineNum,child->TYPE_ID);
-				SemanticError++;
-				VarField->type->kind=ERROR;
+	
+				FieldList look2=NULL;
+				if(field!=NULL&&field->name!=NULL)
+				{	
+					look2=lookup_hash(field->name);
 				}
-				insert_hash(VarField);//nomal insert
+				if(look!=NULL){//compst and varlist
+					if((look2!=NULL&&(look2->type->kind==FUNCTION&&look2->type->u.func.is_extern!=0))||(look2!=NULL&&field->type->u.func.is_extern!=0));
+					else{
+						if(look2==NULL&&field!=NULL&&field->type->kind==FUNCTION&&field->type->u.func.is_extern!=0);
+						else{
+						PrintSemErr(3,node->lineNum,child->TYPE_ID);
+						SemanticError++;
+						VarField->type->kind=ERROR;
+						}
+					}
+				}
+				if(look!=NULL){
+					if((look2!=NULL&&look2->type->kind==FUNCTION&&look2->type->u.func.is_extern!=0)||(look2!=NULL&&field->type->u.func.is_extern!=0));
+					else
+						insert_hash(VarField);//nomal insert
+				}
+				else{
+					insert_hash(VarField);
+				}
 			}
 		else if(field!=NULL&&field->type->kind!=STRUCTTAG)//func argv insert
 			{
@@ -188,7 +213,7 @@ FieldList VarDec(struct Node*node,Type type,FieldList field){
 	
 
 };
-void FunDec(struct Node*node,Type type){
+void FunDec(struct Node*node,Type type,unsigned is_extern){
 	struct Node* child=node->child;
 	FieldList field=(FieldList)malloc(sizeof(struct FieldList_));
 	field->type=(Type)malloc(sizeof(struct Type_));
@@ -197,21 +222,49 @@ void FunDec(struct Node*node,Type type){
 	field->type->u.func.ret=type;
 	field->type->u.func.argc=0;
 	field->type->u.func.argv=NULL;
+	field->type->u.func.is_extern=is_extern;
 	FieldList look=lookup_hash(child->TYPE_ID);
 	if(look!=NULL)
 	{
+		if(look->type->kind!=FUNCTION||((look->type->u.func.is_extern==0)&&(is_extern==0)))
+		{
 		PrintSemErr(4,node->lineNum,child->TYPE_ID);
 		SemanticError++;
 		field->type->kind=ERROR;
 		type->kind=ERROR;
 		return;
+		}
+		
 	}
 	struct Node*brother=child->brother->brother;
 	strcpy(field->name,child->TYPE_ID);
 	if(!strcmp(brother->name,"VarList\0")){
-	VarList(brother,field);
+			VarList(brother,field);
 	}
-	insert_hash(field);
+	if(look==NULL)
+		insert_hash(field);
+	else{
+		if(is_extern!=0)//repeat extern
+			{
+				if(!FuncArgMatch(look,field)){
+					PrintSemErr(19,node->lineNum,field->name);
+					SemanticError++;
+					field->type->kind=ERROR;
+					type->kind=ERROR;
+					return;
+					}
+			}
+		else{//def find extern
+			if(!FuncArgMatch(look,field)){
+				PrintSemErr(19,node->lineNum,field->name);
+				SemanticError++;
+				field->type->kind=ERROR;
+				type->kind=ERROR;
+				return;
+				}
+			look->type->u.func.is_extern=0;
+			}
+	}
 };
 void VarList(struct Node*node,FieldList field){
 	struct Node* child=node->child;
@@ -230,7 +283,6 @@ void VarList(struct Node*node,FieldList field){
 };
 FieldList ParamDec(struct Node*node,FieldList field){
 	Type type=Specifier(node->child);
-	if(field->type->kind==FUNCTION);
 	return VarDec(node->child->brother,type,field);	
 };
 void CompSt(struct Node*node,Type type){
@@ -410,7 +462,8 @@ Type Exp(struct Node*node){
 						PrintSemErr(11,node->lineNum,child->TYPE_ID);
 						SemanticError++;
 						return NULL;
-					}			
+					}		
+					
 					FieldList argfield=Args(brother1);
 					if(!ArgMatch(result,argfield)){
 						PrintSemErr(9,node->lineNum,result->name);
@@ -433,6 +486,7 @@ Type Exp(struct Node*node){
 						SemanticError++;
 						return NULL;
 					}
+					
 					return result->type->u.func.ret;
 				}			
 			}
