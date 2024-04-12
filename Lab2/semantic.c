@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include"HashMap.h"
 unsigned SemanticError=0;
 void semantic_anyasis(struct Node* node)
 {
