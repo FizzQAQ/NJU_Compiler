@@ -5,6 +5,7 @@
 #include "HashMap.h"
 #include "Node.h"
 extern unsigned SemanticError;
+extern HashNode HashMap[HASHMAP_SIZE];
 void init_hash()
 {
 	for(int i=0;i<HASHMAP_SIZE;i++)

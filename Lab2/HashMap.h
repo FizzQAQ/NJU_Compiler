@@ -10,7 +10,7 @@ typedef struct FieldList_* FieldList;
 
 typedef struct HashNode_* HashNode;
 
-HashNode HashMap[HASHMAP_SIZE];
+extern HashNode HashMap[HASHMAP_SIZE];
 struct Type_
 {
 	enum{BASIC,ARRAY,STRUCTURE,STRUCTTAG,FUNCTION,ERROR} kind;
