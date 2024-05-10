@@ -18,7 +18,7 @@ struct Type_{
 	enum{BASIC, ARRAY, STRUCTURE, STRUCTTAG, FUNCTION, ERROR} kind;
 	union{
 		int basic;
-		struct { Type elem; int size; }array;
+		struct { Type elem; int size; } array;
 		FieldList structure;
 		FieldList structmember;
 		struct {Type ret; int argc; FieldList argv; unsigned is_extern; } func;
@@ -57,6 +57,6 @@ bool FuncArgMatch(FieldList func1,FieldList func2);
 FieldList HaveMember(Type type,char *ID);
 void CheckUndefFunc();
 int getsize(Type type);
-int get_array_size(struct Node* Exp);
+int get_array_size(struct Node* node);
 int get_struct_offset(Type type, char* name);
 #endif
