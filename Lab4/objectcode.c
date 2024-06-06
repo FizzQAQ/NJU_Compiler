@@ -1,8 +1,9 @@
-#include"objectcode.h"
-#include<stdio.h>
-#include<stdlib.h>
-#include<assert.h>
-#include"intercode.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include "objectcode.h"
+#include "intercode.h"
 struct Register_ regs[REGS_NUM];
 char* reg_name[]={"$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra"};
 Var_List var_list;
@@ -86,22 +87,22 @@ void trans_one_code(FILE*fp, CodeList onecode){
         case ASSIGN_i:{
             Operand left=code->u.assign.left;
             Operand right=code->u.assign.right;
-            Variable var_left=get_var(left);
+            Variable var_left=(Variable)get_var(left);
             if(var_left==NULL)
             {   if(left->kind!=CONSTANT)
                 {
                     //printf("ASSIGN var_left is NULL\n");
                     //printf("left->num:%d\n",left->u.variable_id);
                 }
-                var_left=insert_var(left);
+                var_left=(Variable)insert_var(left);
             }
             unsigned lefti=get_reg(fp,left,1);
             unsigned righti=get_reg(fp,right,0);
-            Variable var_right=get_var(right);
+            Variable var_right=(Variable)get_var(right);
             if(var_right==NULL)
                {    if(right->kind!=CONSTANT)
                      //printf("ASSIGN var_right is NULL\n"); 
-                var_right=insert_var(right);
+                var_right=(Variable)insert_var(right);
                }
             fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
             save_reg(fp,lefti);
@@ -112,11 +113,11 @@ void trans_one_code(FILE*fp, CodeList onecode){
             Operand result=code->u.binop.result;
             Operand operand1=code->u.binop.operand1;
             Operand operand2=code->u.binop.operand2;
-            Variable var_result=get_var(result);
+            Variable var_result=(Variable)get_var(result);
             if(var_result==NULL){
                 if(result->kind!=CONSTANT)
                 //printf("PLUS var_result is NULL\n");
-                var_result=insert_var(result);
+                var_result=(Variable)insert_var(result);
             }
             unsigned resulti=get_reg(fp,result,1);
             unsigned operand1i=get_reg(fp,operand1,0);
@@ -131,9 +132,9 @@ void trans_one_code(FILE*fp, CodeList onecode){
             Operand result=code->u.binop.result;
             Operand operand1=code->u.binop.operand1;
             Operand operand2=code->u.binop.operand2;
-            Variable var_result=get_var(result);
+            Variable var_result=(Variable)get_var(result);
             if(var_result==NULL)
-               var_result=insert_var(result);
+               var_result=(Variable)insert_var(result);
             //printf("MINUS var_result is NULL\n");}
             unsigned resulti=get_reg(fp,result,1);
             unsigned operand1i=get_reg(fp,operand1,0);
@@ -148,10 +149,10 @@ void trans_one_code(FILE*fp, CodeList onecode){
             Operand result=code->u.binop.result;
             Operand operand1=code->u.binop.operand1;
             Operand operand2=code->u.binop.operand2;
-            Variable var_result=get_var(result);
+            Variable var_result=(Variable)get_var(result);
             if(var_result==NULL)
             {
-                var_result=insert_var(result);
+                var_result=(Variable)insert_var(result);
                 //printf("MUL var_result is NULL\n");
             }
             unsigned resulti=get_reg(fp,result,1);
@@ -167,10 +168,10 @@ void trans_one_code(FILE*fp, CodeList onecode){
             Operand result=code->u.binop.result;
             Operand operand1=code->u.binop.operand1;
             Operand operand2=code->u.binop.operand2;
-            Variable var_result=get_var(result);
+            Variable var_result=(Variable)get_var(result);
             if(var_result==NULL){
                 //printf("DIV var_result is NULL\n");
-                var_result=insert_var(result);}
+                var_result=(Variable)insert_var(result);}
             unsigned resulti=get_reg(fp,result,1);
             unsigned operand1i=get_reg(fp,operand1,0);
             unsigned operand2i=get_reg(fp,operand2,0);
@@ -279,13 +280,13 @@ void trans_one_code(FILE*fp, CodeList onecode){
         case CHANGE_ADDR:{
             Operand left=code->u.assign.left;
             Operand right=code->u.assign.right;
-            Variable var_left=get_var(left);
+            Variable var_left=(Variable)get_var(left);
             unsigned lefti=get_reg(fp,left,1);
             unsigned righti=get_reg(fp,right,0);
-            Variable var_right=get_var(right);
+            Variable var_right=(Variable)get_var(right);
             if(var_right==NULL){
                 //printf("CHANGE_ADDR var_right is NULL\n");
-                var_right=insert_var(right);}
+                var_right=(Variable)insert_var(right);}
             fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
             save_reg(fp,lefti);
             free_reg(righti);
@@ -415,22 +416,22 @@ int cal_offset(CodeList codelist){
         {
             Operand left=code->u.assign.left;
             Operand right=code->u.assign.right;
-            Variable var_left=get_var(left);
+            Variable var_left=(Variable)get_var(left);
             if(var_left==NULL)
             {
-                var_left=insert_var(left);
+                var_left=(Variable)insert_var(left);
             }
-            Variable var_right=get_var(right);
+            Variable var_right=(Variable)get_var(right);
             if(var_right==NULL)
-                var_right=insert_var(right);
+                var_right=(Variable)insert_var(right);
             
         }
         else if(tmp->code->kind==PLUS_i||tmp->code->kind==MINUS_i||tmp->code->kind==MUL_i||tmp->code->kind==DIV_i)
         {
             Operand result=code->u.binop.result;
-            Variable var_result=get_var(result);
+            Variable var_result=(Variable)get_var(result);
             if(var_result==NULL)
-                var_result=insert_var(result);
+                var_result=(Variable)insert_var(result);
         }
         else if (tmp->code->kind==CALL_i)
         {
@@ -444,10 +445,10 @@ int cal_offset(CodeList codelist){
         else if(tmp->code->kind==CHANGE_ADDR){
             Operand left=code->u.assign.left;
             Operand right=code->u.assign.right;
-            Variable var_left=get_var(left);
-            Variable var_right=get_var(right);
+            Variable var_left=(Variable)get_var(left);
+            Variable var_right=(Variable)get_var(right);
             if(var_left==NULL)
-                var_left=insert_var(right); 
+                var_left=(Variable)insert_var(right); 
         }
         else if(tmp->code->kind==READ){
             Operand result=code->u.call.result;

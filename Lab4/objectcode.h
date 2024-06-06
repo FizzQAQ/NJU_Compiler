@@ -7,7 +7,7 @@
 typedef struct Register_* Register; 
 typedef struct Variable_* Variable ;
 typedef struct VarNode * Var_List;
-typedef struct Register_{
+struct Register_{
     char* name;
     enum {BUSY, FREE}state;
     Variable var;
@@ -15,14 +15,14 @@ typedef struct Register_{
 
 extern struct Register_ regs[REGS_NUM];
 
-typedef struct Variable_
+struct Variable_
 {
     Operand op;
     unsigned offset;
     unsigned reg_num;  
 };
 
-typedef struct VarNode
+struct VarNode
 {
     Variable var;
     struct VarNode * next;
