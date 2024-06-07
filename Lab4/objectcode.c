@@ -97,13 +97,22 @@ void trans_one_code(FILE*fp, CodeList onecode){
             }
             unsigned lefti=get_reg(fp,left,1);
             unsigned righti=get_reg(fp,right,0);
-            Variable var_right=get_var(right);
+            Var_List var_right=get_var(right);
+            //if(var_right!=NULL){printf("right->kind:%d,offset:%d\n",var_right->var->op->kind,var_right->var->offset);}
             if(var_right==NULL)
                {    if(right->kind!=CONSTANT)
                      //printf("ASSIGN var_right is NULL\n"); 
                 var_right=insert_var(right);
+                fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
                }
-            fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
+            else if(right->kind==ADDRESS){
+                fprintf(fp,"  lw %s, 0(%s)\n",regs[lefti].name,regs[righti].name);
+            }
+            else{
+                //printf("right->kind:%d,offset:%d\n",right->kind,var_right->offset);
+                fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
+            }
+            
             save_reg(fp,lefti);
             free_reg(righti);
             break;
@@ -149,11 +158,6 @@ void trans_one_code(FILE*fp, CodeList onecode){
             Operand operand1=code->u.binop.operand1;
             Operand operand2=code->u.binop.operand2;
             Variable var_result=get_var(result);
-            if(var_result==NULL)
-            {
-                var_result=insert_var(result);
-                //printf("MUL var_result is NULL\n");
-            }
             unsigned resulti=get_reg(fp,result,1);
             unsigned operand1i=get_reg(fp,operand1,0);
             unsigned operand2i=get_reg(fp,operand2,0);
@@ -227,15 +231,7 @@ void trans_one_code(FILE*fp, CodeList onecode){
             
         }
         case DEC_i:{
-            Operand x=code->u.dec.x;
-            int size=code->u.dec.size;
-            stack_offset-=size-4;
-            struct VarNode* var=get_var(x);
-            if(var==NULL)
-            {
-                //printf("DEC var is NULL\n");
-                var=insert_var(x);
-            } 
+
             break;
             
         }
@@ -276,18 +272,15 @@ void trans_one_code(FILE*fp, CodeList onecode){
         case PARAM_i:{
             break;
         }
-        case CHANGE_ADDR:{
+        case CHANGE_ADDR:{//*x=y
             Operand left=code->u.assign.left;
             Operand right=code->u.assign.right;
-            Variable var_left=get_var(left);
-            unsigned lefti=get_reg(fp,left,1);
+            //Variable var_left=get_var(left);
+            //printf("%d\n",left->kind);
+            unsigned lefti=get_reg(fp,left,0);
             unsigned righti=get_reg(fp,right,0);
-            Variable var_right=get_var(right);
-            if(var_right==NULL){
-                //printf("CHANGE_ADDR var_right is NULL\n");
-                var_right=insert_var(right);}
-            fprintf(fp,"  move %s, %s\n",regs[lefti].name,regs[righti].name);
-            save_reg(fp,lefti);
+            fprintf(fp,"  sw %s, 0(%s)\n",regs[righti].name,regs[lefti].name);
+            free_reg(lefti);
             free_reg(righti);
             break;
         }
@@ -345,8 +338,22 @@ unsigned get_reg(FILE *fp, Operand op,int left){
         regs[i].var=get_var(op)->var;
         struct VarNode* var=get_var(op);
         if(!left)
-        fprintf(fp,"  lw %s, %d($fp)\n",regs[i].name,var->var->offset);
+        {  
+            fprintf(fp,"  lw %s, %d($fp)\n",regs[i].name,var->var->offset);
+        }
+        
         int offset=var->var->offset;
+    }
+    else if(op->kind==ARR_STRU){
+        regs[i].var=get_var(op)->var;
+        struct VarNode* var=get_var(op);
+        fprintf(fp,"  addi %s, $fp, %d\n",regs[i].name,var->var->offset);
+
+    }
+    else if(op->kind==ADDRESS){
+        regs[i].var=get_var(op)->var;
+        struct VarNode* var=get_var(op);
+        fprintf(fp,"  lw %s, %d($fp)\n",regs[i].name,var->var->offset);
     }
     return i;
 }
@@ -354,10 +361,13 @@ struct VarNode* get_var(Operand op){
     Var_List tmp=var_list;
     while (tmp!=NULL)
     {
-        if(tmp->var->op==op)
+        if(tmp->var->op==op){
+            //printf("%d\n", op->kind);
             return tmp;
+        }
         tmp=tmp->next;
     }
+    //assert(tmp != NULL);
     return NULL;
 }
 struct VarNode* insert_var(Operand op){
@@ -367,7 +377,9 @@ struct VarNode* insert_var(Operand op){
     Var_List new_var=(Var_List)malloc(sizeof(struct VarNode));
     new_var->var=(Variable)malloc(sizeof(struct Variable_));
     stack_offset-=4;
+    //printf("stack_offset:%d\n",stack_offset);
     new_var->var->op=op;
+    //printf("%d,%d\n", new_var->var->op->kind, op -> kind);
     new_var->var->offset=stack_offset;
     new_var->var->reg_num=-1;
     new_var->next=NULL;

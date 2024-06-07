@@ -171,9 +171,9 @@ int main(int argc, char** argv) {
         //printf("Semantic anyasis end!\n");
 	    //PrintMap();
         //printf("Build intercodes begin !\n");
-		if (argc >= 3) inter_code(argv[2], root);
+		if (argc > 3) inter_code(argv[2], root);
         else inter_code(NULL, root);
-        translate(argv[3]);
+        translate(argv[2]);
         //printf("Build intercodes end !\n");
 	}
     return 0;

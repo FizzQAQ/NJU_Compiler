@@ -18,7 +18,7 @@ extern struct Register_ regs[REGS_NUM];
 typedef struct Variable_
 {
     Operand op;
-    unsigned offset;
+    int offset;
     unsigned reg_num;  
 };
 
