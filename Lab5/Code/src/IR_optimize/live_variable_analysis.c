@@ -178,7 +178,7 @@ static bool block_remove_dead_def (LiveVariableAnalysis *t, IR_block *blk) {
              */
             //TODO();
             if(VCALL(*new_out_fact, exist, def) == false) {
-                stmt->dead = true;
+                stmt -> dead = true;
                 updated = true;
             }
         }

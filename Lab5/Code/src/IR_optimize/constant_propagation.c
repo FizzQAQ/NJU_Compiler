@@ -12,7 +12,7 @@ static CPValue meetValue(CPValue v1, CPValue v2) {
      */
     //TODO();
     if (v1.kind == NAC || v2.kind == NAC) return get_NAC();
-    if (v1.kind == CONST && v2.kind == CONST) return v1;
+    if (v1.kind == CONST && v2.kind == UNDEF) return v1;
     if (v1.kind == UNDEF && v2.kind == CONST) return v2;
     if (v1.kind == CONST && v2.kind == CONST){
         if (v1.const_val == v2.const_val) return v1;
